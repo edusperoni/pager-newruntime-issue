@@ -3,6 +3,9 @@
   "main": "./src/main.ts",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "postinstall": "patch-package"
+  },
   "dependencies": {
     "@angular/animations": "~19.0.0",
     "@angular/common": "~19.0.0",
