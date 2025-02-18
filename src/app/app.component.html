@@ -1,3 +1,9 @@
 <GridLayout>
-  <page-router-outlet></page-router-outlet>
+  <!-- <page-router-outlet></page-router-outlet> -->
+  <Pager [items]="items">
+    <ng-template let-item="item">
+      <GridLayout>
+      </GridLayout>
+    </ng-template>
+  </Pager>
 </GridLayout>

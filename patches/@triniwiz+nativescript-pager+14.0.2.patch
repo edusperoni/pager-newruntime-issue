@@ -1,0 +1,853 @@
+diff --git a/node_modules/@triniwiz/nativescript-pager/angular/esm2020/pager-items-comp.mjs b/node_modules/@triniwiz/nativescript-pager/angular/esm2020/pager-items-comp.mjs
+index f2bd827..ac90647 100644
+--- a/node_modules/@triniwiz/nativescript-pager/angular/esm2020/pager-items-comp.mjs
++++ b/node_modules/@triniwiz/nativescript-pager/angular/esm2020/pager-items-comp.mjs
+@@ -1,8 +1,8 @@
+ import { __decorate } from "tslib";
+-import { ContentChild, Directive, EventEmitter, Host, Inject, InjectionToken, Input, Output, TemplateRef, ViewChild, ViewContainerRef, ɵisListLikeIterable as isListLikeIterable, } from "@angular/core";
++import { ContentChild, Directive, EventEmitter, Host, Inject, InjectionToken, Input, Output, TemplateRef, ViewChild, ViewContainerRef } from "@angular/core";
+ import { isIOS } from "@nativescript/core";
+ import { LayoutBase, Trace, profile, ObservableArray } from "@nativescript/core";
+-import { getSingleViewRecursive, isInvisibleNode, registerElement, } from "@nativescript/angular";
++import { getSingleViewRecursive, isInvisibleNode, registerElement, isListLikeIterable } from "@nativescript/angular";
+ import { Pager, PagerError, PagerItem, PagerLog, } from "@triniwiz/nativescript-pager";
+ import * as i0 from "@angular/core";
+ registerElement("Pager", () => Pager);
+diff --git a/node_modules/@triniwiz/nativescript-pager/angular/fesm2015/nativescript-nativescript-pager-angular.mjs b/node_modules/@triniwiz/nativescript-pager/angular/fesm2015/nativescript-nativescript-pager-angular.mjs
+index 75dae86..b5e4e9c 100644
+--- a/node_modules/@triniwiz/nativescript-pager/angular/fesm2015/nativescript-nativescript-pager-angular.mjs
++++ b/node_modules/@triniwiz/nativescript-pager/angular/fesm2015/nativescript-nativescript-pager-angular.mjs
+@@ -1,8 +1,8 @@
+ import * as i0 from '@angular/core';
+-import { EventEmitter, ɵisListLikeIterable, TemplateRef, ViewContainerRef, Directive, ViewChild, Output, ContentChild, Input, InjectionToken, Inject, Host, forwardRef, Component, ChangeDetectionStrategy, NgModule, NO_ERRORS_SCHEMA } from '@angular/core';
++import { EventEmitter, TemplateRef, ViewContainerRef, Directive, ViewChild, Output, ContentChild, Input, InjectionToken, Inject, Host, forwardRef, Component, ChangeDetectionStrategy, NgModule, NO_ERRORS_SCHEMA } from '@angular/core';
+ import { __decorate } from 'tslib';
+ import { ObservableArray, isIOS, Trace, LayoutBase, profile } from '@nativescript/core';
+-import { registerElement, getSingleViewRecursive, isInvisibleNode } from '@nativescript/angular';
++import { registerElement, getSingleViewRecursive, isInvisibleNode, isListLikeIterable as ɵisListLikeIterable } from '@nativescript/angular';
+ import { Pager, PagerItem, PagerLog, PagerError } from '@triniwiz/nativescript-pager';
+ 
+ registerElement("Pager", () => Pager);
+diff --git a/node_modules/@triniwiz/nativescript-pager/index.android.js b/node_modules/@triniwiz/nativescript-pager/index.android.js
+index 4529595..a74f3ba 100644
+--- a/node_modules/@triniwiz/nativescript-pager/index.android.js
++++ b/node_modules/@triniwiz/nativescript-pager/index.android.js
+@@ -351,6 +351,7 @@ export class Pager extends PagerBase {
+     }
+     onLoaded() {
+         super.onLoaded();
++        this._initAutoPlay(this.autoPlay);
+         if (!this.items && this._childrenCount > 0) {
+             initStaticPagerStateAdapter();
+             if (!(this._pagerAdapter instanceof StaticPagerStateAdapter)) {
+@@ -389,6 +390,7 @@ export class Pager extends PagerBase {
+         if (this.pager && this._pagerAdapter) {
+             this.pager.requestLayout();
+             this.pager.getAdapter().notifyDataSetChanged();
++            this._initAutoPlay(this.autoPlay);
+         }
+     }
+     updatePagesCount(value) {
+@@ -400,6 +402,7 @@ export class Pager extends PagerBase {
+     onUnloaded() {
+         // this._android.setAdapter(null);
+         super.onUnloaded();
++        this._initAutoPlay(false);
+     }
+     eachChildView(callback) {
+         if (this._realizedItems && this._realizedItems.size > 0) {
+@@ -532,7 +535,7 @@ export class Pager extends PagerBase {
+         if (!this.items || this.items.length === 0) {
+             return;
+         }
+-        if (!value) {
++        if (!value || !this.isLoaded) {
+             if (this._autoPlayInterval) {
+                 clearInterval(this._autoPlayInterval);
+                 this._autoPlayInterval = undefined;
+@@ -543,6 +546,12 @@ export class Pager extends PagerBase {
+                 this._autoPlayInterval = setInterval(() => {
+                     this.selectedIndex = this._nextIndex();
+                 }, this.autoPlayDelay);
++            } else if (!this.isLayoutValid) {
++                this.autoplayLayoutTimeout = this.autoplayLayoutTimeout ||
++                    setTimeout(() => {
++                        this.autoplayLayoutTimeout = undefined;
++                        this._initAutoPlay(this.autoPlay);
++                    }, 50);
+             }
+         }
+     }
+@@ -579,121 +588,121 @@ function initPagerChangeCallback() {
+         return PageChangeCallback;
+     }
+     var PageChangeCallbackImpl = /** @class */ (function (_super) {
+-    __extends(PageChangeCallbackImpl, _super);
+-    function PageChangeCallbackImpl(owner) {
+-        var _this = _super.call(this) || this;
+-        _this.owner = owner;
+-        return global.__native(_this);
+-    }
+-    PageChangeCallbackImpl.prototype.onPageSelected = function (position) {
+-        var owner = this.owner && this.owner.get();
+-        if (owner) {
+-            owner.notify({
+-                eventName: Pager.swipeEvent,
+-                object: owner,
+-            });
+-        }
+-    };
+-    PageChangeCallbackImpl.prototype.onPageScrolled = function (position, positionOffset, positionOffsetPixels) {
+-        var owner = this.owner && this.owner.get();
+-        if (owner && owner.isLayoutValid) {
+-            if (owner.circularMode) {
+-                position = owner.pagerAdapter.getPosition(position);
+-            }
+-            var offset = position * positionOffsetPixels;
+-            if (owner.orientation === "vertical") {
+-                owner._horizontalOffset = 0;
+-                owner._verticalOffset = offset;
+-            }
+-            else if (owner.orientation === "horizontal") {
+-                owner._horizontalOffset = offset;
+-                owner._verticalOffset = 0;
+-            }
+-            owner.notify({
+-                eventName: Pager.scrollEvent,
+-                object: owner,
+-                selectedIndex: position,
+-                scrollX: owner.horizontalOffset,
+-                scrollY: owner.verticalOffset,
+-            });
+-            if (owner.items &&
+-                position ===
+-                    owner.pagerAdapter.lastIndex() - owner.loadMoreCount) {
+-                owner.notify({ eventName: LOADMOREITEMS, object: owner });
+-            }
+-            if (owner.showIndicator && owner.indicatorView) {
+-                var progress = Pager.getProgress(owner.indicatorView, position, positionOffset, false);
+-                var selectingPosition = progress[0];
+-                var selectingProgress = progress[1];
+-                owner.indicatorView.setInteractiveAnimation(true);
+-                owner.indicatorView.setProgress(selectingPosition, selectingProgress);
+-            }
+-        }
+-    };
+-    PageChangeCallbackImpl.prototype.onPageScrollStateChanged = function (state) {
+-        var owner = this.owner && this.owner.get();
+-        if (owner) {
+-            if (owner.lastEvent === 0 && state === 1) {
+-                owner.notify({
+-                    eventName: Pager.swipeStartEvent,
+-                    object: owner,
+-                });
+-                owner.lastEvent = 1;
+-            }
+-            else if (owner.lastEvent === 1 && state === 1) {
++        __extends(PageChangeCallbackImpl, _super);
++        function PageChangeCallbackImpl(owner) {
++            var _this = _super.call(this) || this;
++            _this.owner = owner;
++            return global.__native(_this);
++        }
++        PageChangeCallbackImpl.prototype.onPageSelected = function (position) {
++            var owner = this.owner && this.owner.get();
++            if (owner) {
+                 owner.notify({
+-                    eventName: Pager.swipeOverEvent,
++                    eventName: Pager.swipeEvent,
+                     object: owner,
+                 });
+-                owner.lastEvent = 1;
+             }
+-            else if (owner.lastEvent === 1 && state === 2) {
++        };
++        PageChangeCallbackImpl.prototype.onPageScrolled = function (position, positionOffset, positionOffsetPixels) {
++            var owner = this.owner && this.owner.get();
++            if (owner && owner.isLayoutValid) {
++                if (owner.circularMode) {
++                    position = owner.pagerAdapter.getPosition(position);
++                }
++                var offset = position * positionOffsetPixels;
++                if (owner.orientation === "vertical") {
++                    owner._horizontalOffset = 0;
++                    owner._verticalOffset = offset;
++                }
++                else if (owner.orientation === "horizontal") {
++                    owner._horizontalOffset = offset;
++                    owner._verticalOffset = 0;
++                }
+                 owner.notify({
+-                    eventName: Pager.swipeEndEvent,
++                    eventName: Pager.scrollEvent,
+                     object: owner,
++                    selectedIndex: position,
++                    scrollX: owner.horizontalOffset,
++                    scrollY: owner.verticalOffset,
+                 });
+-                owner.lastEvent = 2;
+-            }
+-            else {
+-                owner.lastEvent = 0;
++                if (owner.items &&
++                    position ===
++                    owner.pagerAdapter.lastIndex() - owner.loadMoreCount) {
++                    owner.notify({ eventName: LOADMOREITEMS, object: owner });
++                }
++                if (owner.showIndicator && owner.indicatorView) {
++                    var progress = Pager.getProgress(owner.indicatorView, position, positionOffset, false);
++                    var selectingPosition = progress[0];
++                    var selectingProgress = progress[1];
++                    owner.indicatorView.setInteractiveAnimation(true);
++                    owner.indicatorView.setProgress(selectingPosition, selectingProgress);
++                }
+             }
+-            if (owner.isLayoutValid &&
+-                state ===
++        };
++        PageChangeCallbackImpl.prototype.onPageScrollStateChanged = function (state) {
++            var owner = this.owner && this.owner.get();
++            if (owner) {
++                if (owner.lastEvent === 0 && state === 1) {
++                    owner.notify({
++                        eventName: Pager.swipeStartEvent,
++                        object: owner,
++                    });
++                    owner.lastEvent = 1;
++                }
++                else if (owner.lastEvent === 1 && state === 1) {
++                    owner.notify({
++                        eventName: Pager.swipeOverEvent,
++                        object: owner,
++                    });
++                    owner.lastEvent = 1;
++                }
++                else if (owner.lastEvent === 1 && state === 2) {
++                    owner.notify({
++                        eventName: Pager.swipeEndEvent,
++                        object: owner,
++                    });
++                    owner.lastEvent = 2;
++                }
++                else {
++                    owner.lastEvent = 0;
++                }
++                if (owner.isLayoutValid &&
++                    state ===
+                     androidx.viewpager2.widget.ViewPager2.SCROLL_STATE_IDLE) {
+-                // ts-ignore
+-                var count = owner.pagerAdapter.getItemCount();
+-                var index = owner.pager.getCurrentItem();
+-                if (owner.circularMode) {
+-                    if (index === 0) {
+-                        // last item
+-                        owner.indicatorView.setInteractiveAnimation(false);
+-                        owner.pager.setCurrentItem(count - 2, false);
+-                        selectedIndexProperty.nativeValueChange(owner, count - 3);
+-                        owner.indicatorView.setSelected(count - 3);
+-                        owner.indicatorView.setInteractiveAnimation(true);
+-                    }
+-                    else if (index === count - 1) {
+-                        // first item
+-                        owner.indicatorView.setInteractiveAnimation(false);
+-                        owner.indicatorView.setSelected(0);
+-                        owner.pager.setCurrentItem(1, false);
+-                        selectedIndexProperty.nativeValueChange(owner, 0);
+-                        owner.indicatorView.setInteractiveAnimation(true);
++                    // ts-ignore
++                    var count = owner.pagerAdapter.getItemCount();
++                    var index = owner.pager.getCurrentItem();
++                    if (owner.circularMode) {
++                        if (index === 0) {
++                            // last item
++                            owner.indicatorView.setInteractiveAnimation(false);
++                            owner.pager.setCurrentItem(count - 2, false);
++                            selectedIndexProperty.nativeValueChange(owner, count - 3);
++                            owner.indicatorView.setSelected(count - 3);
++                            owner.indicatorView.setInteractiveAnimation(true);
++                        }
++                        else if (index === count - 1) {
++                            // first item
++                            owner.indicatorView.setInteractiveAnimation(false);
++                            owner.indicatorView.setSelected(0);
++                            owner.pager.setCurrentItem(1, false);
++                            selectedIndexProperty.nativeValueChange(owner, 0);
++                            owner.indicatorView.setInteractiveAnimation(true);
++                        }
++                        else {
++                            selectedIndexProperty.nativeValueChange(owner, index - 1);
++                        }
+                     }
+                     else {
+-                        selectedIndexProperty.nativeValueChange(owner, index - 1);
++                        selectedIndexProperty.nativeValueChange(owner, index);
++                        owner.indicatorView.setSelected(index);
+                     }
+                 }
+-                else {
+-                    selectedIndexProperty.nativeValueChange(owner, index);
+-                    owner.indicatorView.setSelected(index);
+-                }
+             }
+-        }
+-    };
+-    return PageChangeCallbackImpl;
+-}(androidx.viewpager2.widget.ViewPager2
+-    .OnPageChangeCallback));
++        };
++        return PageChangeCallbackImpl;
++    }(androidx.viewpager2.widget.ViewPager2
++        .OnPageChangeCallback));
+     PageChangeCallback = PageChangeCallbackImpl;
+ }
+ let PagerRecyclerAdapter;
+@@ -702,138 +711,138 @@ function initPagerRecyclerAdapter() {
+         return;
+     }
+     var PagerRecyclerAdapterImpl = /** @class */ (function (_super) {
+-    __extends(PagerRecyclerAdapterImpl, _super);
+-    function PagerRecyclerAdapterImpl(owner) {
+-        var _this = _super.call(this) || this;
+-        _this.owner = owner;
+-        return global.__native(_this);
+-    }
+-    PagerRecyclerAdapterImpl.prototype.onCreateViewHolder = function (param0, type) {
+-        var owner = this.owner ? this.owner.get() : null;
+-        if (!owner) {
+-            return null;
+-        }
+-        var template = owner._itemTemplatesInternal[type];
+-        var view = template.createView();
+-        if (!view && owner._itemViewLoader !== undefined) {
+-            view = owner._itemViewLoader(template.key);
+-        }
+-        var sp = new StackLayout();
+-        if (view) {
+-            sp.addChild(view);
+-        }
+-        else {
+-            sp[PLACEHOLDER] = true;
+-        }
+-        owner._addView(sp);
+-        sp.nativeView.setLayoutParams(new android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+-        owner._realizedItems.set(sp.nativeView, sp);
+-        initPagerViewHolder();
+-        return new PagerViewHolder(new WeakRef(sp), new WeakRef(owner));
+-    };
+-    PagerRecyclerAdapterImpl.prototype.getPosition = function (index) {
+-        var owner = this.owner && this.owner.get();
+-        var position = index;
+-        if (owner && owner.circularMode) {
+-            if (position === 0) {
+-                position = this.lastDummy();
+-            }
+-            else if (position === this.firstDummy()) {
+-                position = 0;
++        __extends(PagerRecyclerAdapterImpl, _super);
++        function PagerRecyclerAdapterImpl(owner) {
++            var _this = _super.call(this) || this;
++            _this.owner = owner;
++            return global.__native(_this);
++        }
++        PagerRecyclerAdapterImpl.prototype.onCreateViewHolder = function (param0, type) {
++            var owner = this.owner ? this.owner.get() : null;
++            if (!owner) {
++                return null;
++            }
++            var template = owner._itemTemplatesInternal[type];
++            var view = template.createView();
++            if (!view && owner._itemViewLoader !== undefined) {
++                view = owner._itemViewLoader(template.key);
++            }
++            var sp = new StackLayout();
++            if (view) {
++                sp.addChild(view);
+             }
+             else {
+-                position = position - 1;
++                sp[PLACEHOLDER] = true;
+             }
+-        }
+-        return position;
+-    };
+-    PagerRecyclerAdapterImpl.prototype.onBindViewHolder = function (holder, index) {
+-        var owner = this.owner ? this.owner.get() : null;
+-        if (owner) {
+-            if (owner.circularMode) {
+-                if (index === 0) {
+-                    index = this.lastDummy();
++            owner._addView(sp);
++            sp.nativeView.setLayoutParams(new android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
++            owner._realizedItems.set(sp.nativeView, sp);
++            initPagerViewHolder();
++            return new PagerViewHolder(new WeakRef(sp), new WeakRef(owner));
++        };
++        PagerRecyclerAdapterImpl.prototype.getPosition = function (index) {
++            var owner = this.owner && this.owner.get();
++            var position = index;
++            if (owner && owner.circularMode) {
++                if (position === 0) {
++                    position = this.lastDummy();
+                 }
+-                else if (index === this.firstDummy()) {
+-                    index = 0;
++                else if (position === this.firstDummy()) {
++                    position = 0;
+                 }
+                 else {
+-                    index = index - 1;
++                    position = position - 1;
+                 }
+             }
+-            var bindingContext = owner._getDataItem(index);
+-            var args = {
+-                eventName: ITEMLOADING,
+-                object: owner,
+-                android: holder,
+-                ios: undefined,
+-                index: index,
+-                bindingContext: bindingContext,
+-                view: holder.view[PLACEHOLDER] ? null : holder.view
+-            };
+-            owner.notify(args);
+-            if (holder.view[PLACEHOLDER]) {
+-                if (args.view) {
+-                    holder.view.addChild(args.view);
++            return position;
++        };
++        PagerRecyclerAdapterImpl.prototype.onBindViewHolder = function (holder, index) {
++            var owner = this.owner ? this.owner.get() : null;
++            if (owner) {
++                if (owner.circularMode) {
++                    if (index === 0) {
++                        index = this.lastDummy();
++                    }
++                    else if (index === this.firstDummy()) {
++                        index = 0;
++                    }
++                    else {
++                        index = index - 1;
++                    }
+                 }
+-                else {
+-                    holder.view.addChild(owner._getDefaultItemContent(index));
++                var bindingContext = owner._getDataItem(index);
++                var args = {
++                    eventName: ITEMLOADING,
++                    object: owner,
++                    android: holder,
++                    ios: undefined,
++                    index: index,
++                    bindingContext: bindingContext,
++                    view: holder.view[PLACEHOLDER] ? null : holder.view
++                };
++                owner.notify(args);
++                if (holder.view[PLACEHOLDER]) {
++                    if (args.view) {
++                        holder.view.addChild(args.view);
++                    }
++                    else {
++                        holder.view.addChild(owner._getDefaultItemContent(index));
++                    }
++                    holder.view[PLACEHOLDER] = false;
+                 }
+-                holder.view[PLACEHOLDER] = false;
++                owner._prepareItem(holder.view, index);
+             }
+-            owner._prepareItem(holder.view, index);
+-        }
+-    };
+-    PagerRecyclerAdapterImpl.prototype.getItemId = function (i) {
+-        var owner = this.owner ? this.owner.get() : null;
+-        var id = i;
+-        if (owner && owner.items) {
+-            var item = owner.items.getItem ? owner.items.getItem(i) : owner.items[i];
+-            if (item) {
+-                id = owner.itemIdGenerator(item, i, owner.items);
++        };
++        PagerRecyclerAdapterImpl.prototype.getItemId = function (i) {
++            var owner = this.owner ? this.owner.get() : null;
++            var id = i;
++            if (owner && owner.items) {
++                var item = owner.items.getItem ? owner.items.getItem(i) : owner.items[i];
++                if (item) {
++                    id = owner.itemIdGenerator(item, i, owner.items);
++                }
+             }
+-        }
+-        return long(id);
+-    };
+-    PagerRecyclerAdapterImpl.prototype.getItemCount = function () {
+-        var owner = this.owner ? this.owner.get() : null;
+-        return owner && owner.items && owner.items.length
+-            ? owner.items.length + (owner.circularMode ? 2 : 0)
+-            : 0;
+-    };
+-    PagerRecyclerAdapterImpl.prototype.getItemViewType = function (index) {
+-        var owner = this.owner ? this.owner.get() : null;
+-        if (owner) {
+-            var template = owner._getItemTemplate(index);
+-            return owner._itemTemplatesInternal.indexOf(template);
+-        }
+-        return 0;
+-    };
+-    PagerRecyclerAdapterImpl.prototype.lastIndex = function () {
+-        var owner = this.owner && this.owner.get();
+-        if (owner) {
+-            if (owner.items.length === 0) {
+-                return 0;
++            return long(id);
++        };
++        PagerRecyclerAdapterImpl.prototype.getItemCount = function () {
++            var owner = this.owner ? this.owner.get() : null;
++            return owner && owner.items && owner.items.length
++                ? owner.items.length + (owner.circularMode ? 2 : 0)
++                : 0;
++        };
++        PagerRecyclerAdapterImpl.prototype.getItemViewType = function (index) {
++            var owner = this.owner ? this.owner.get() : null;
++            if (owner) {
++                var template = owner._getItemTemplate(index);
++                return owner._itemTemplatesInternal.indexOf(template);
+             }
+-            return owner.circularMode ? this.getItemCount() - 3 : this.getItemCount() - 1;
+-        }
+-        return 0;
+-    };
+-    PagerRecyclerAdapterImpl.prototype.firstDummy = function () {
+-        var count = this.getItemCount();
+-        if (count === 0) {
+             return 0;
+-        }
+-        return this.getItemCount() - 1;
+-    };
+-    PagerRecyclerAdapterImpl.prototype.lastDummy = function () {
+-        return this.lastIndex();
+-    };
+-    PagerRecyclerAdapterImpl.prototype.hasStableIds = function () {
+-        return true;
+-    };
+-    return PagerRecyclerAdapterImpl;
+-}(androidx.recyclerview.widget.RecyclerView.Adapter));
++        };
++        PagerRecyclerAdapterImpl.prototype.lastIndex = function () {
++            var owner = this.owner && this.owner.get();
++            if (owner) {
++                if (owner.items.length === 0) {
++                    return 0;
++                }
++                return owner.circularMode ? this.getItemCount() - 3 : this.getItemCount() - 1;
++            }
++            return 0;
++        };
++        PagerRecyclerAdapterImpl.prototype.firstDummy = function () {
++            var count = this.getItemCount();
++            if (count === 0) {
++                return 0;
++            }
++            return this.getItemCount() - 1;
++        };
++        PagerRecyclerAdapterImpl.prototype.lastDummy = function () {
++            return this.lastIndex();
++        };
++        PagerRecyclerAdapterImpl.prototype.hasStableIds = function () {
++            return true;
++        };
++        return PagerRecyclerAdapterImpl;
++    }(androidx.recyclerview.widget.RecyclerView.Adapter));
+     PagerRecyclerAdapter = PagerRecyclerAdapterImpl;
+ }
+ let StaticPagerStateAdapter;
+@@ -842,84 +851,84 @@ function initStaticPagerStateAdapter() {
+         return;
+     }
+     var StaticPagerStateAdapterImpl = /** @class */ (function (_super) {
+-    __extends(StaticPagerStateAdapterImpl, _super);
+-    function StaticPagerStateAdapterImpl(owner) {
+-        var _this = _super.call(this) || this;
+-        _this.owner = owner;
+-        return global.__native(_this);
+-    }
+-    StaticPagerStateAdapterImpl.prototype.onCreateViewHolder = function (param0, type) {
+-        var owner = this.owner ? this.owner.get() : null;
+-        if (!owner) {
+-            return null;
+-        }
+-        var view = owner._childrenViews.get(type);
+-        var sp = new StackLayout(); // Pager2 requires match_parent so add a parent with to fill
+-        if (view && !view.parent) {
+-            sp.addChild(view);
+-        }
+-        else {
+-            sp[PLACEHOLDER] = true;
+-        }
+-        owner._addView(sp);
+-        sp.nativeView.setLayoutParams(new android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+-        initPagerViewHolder();
+-        return new PagerViewHolder(new WeakRef(sp), new WeakRef(owner));
+-    };
+-    StaticPagerStateAdapterImpl.prototype.onBindViewHolder = function (holder, index) {
+-        var owner = this.owner ? this.owner.get() : null;
+-        if (owner) {
+-            var args = {
+-                eventName: ITEMLOADING,
+-                object: owner,
+-                android: holder,
+-                ios: undefined,
+-                index: index,
+-                view: holder.view[PLACEHOLDER] ? null : holder.view
+-            };
+-            owner.notify(args);
+-            if (holder.view[PLACEHOLDER]) {
+-                if (args.view) {
+-                    holder.view.addChild(args.view);
++        __extends(StaticPagerStateAdapterImpl, _super);
++        function StaticPagerStateAdapterImpl(owner) {
++            var _this = _super.call(this) || this;
++            _this.owner = owner;
++            return global.__native(_this);
++        }
++        StaticPagerStateAdapterImpl.prototype.onCreateViewHolder = function (param0, type) {
++            var owner = this.owner ? this.owner.get() : null;
++            if (!owner) {
++                return null;
++            }
++            var view = owner._childrenViews.get(type);
++            var sp = new StackLayout(); // Pager2 requires match_parent so add a parent with to fill
++            if (view && !view.parent) {
++                sp.addChild(view);
++            }
++            else {
++                sp[PLACEHOLDER] = true;
++            }
++            owner._addView(sp);
++            sp.nativeView.setLayoutParams(new android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
++            initPagerViewHolder();
++            return new PagerViewHolder(new WeakRef(sp), new WeakRef(owner));
++        };
++        StaticPagerStateAdapterImpl.prototype.onBindViewHolder = function (holder, index) {
++            var owner = this.owner ? this.owner.get() : null;
++            if (owner) {
++                var args = {
++                    eventName: ITEMLOADING,
++                    object: owner,
++                    android: holder,
++                    ios: undefined,
++                    index: index,
++                    view: holder.view[PLACEHOLDER] ? null : holder.view
++                };
++                owner.notify(args);
++                if (holder.view[PLACEHOLDER]) {
++                    if (args.view) {
++                        holder.view.addChild(args.view);
++                    }
++                    holder.view[PLACEHOLDER] = false;
+                 }
+-                holder.view[PLACEHOLDER] = false;
+             }
+-        }
+-    };
+-    StaticPagerStateAdapterImpl.prototype.hasStableIds = function () {
+-        return true;
+-    };
+-    StaticPagerStateAdapterImpl.prototype.getItem = function (i) {
+-        var owner = this.owner ? this.owner.get() : null;
+-        if (owner) {
+-            if (owner._childrenViews) {
+-                return owner._childrenViews.get(i);
++        };
++        StaticPagerStateAdapterImpl.prototype.hasStableIds = function () {
++            return true;
++        };
++        StaticPagerStateAdapterImpl.prototype.getItem = function (i) {
++            var owner = this.owner ? this.owner.get() : null;
++            if (owner) {
++                if (owner._childrenViews) {
++                    return owner._childrenViews.get(i);
++                }
+             }
+-        }
+-        return null;
+-    };
+-    StaticPagerStateAdapterImpl.prototype.getItemId = function (i) {
+-        var owner = this.owner ? this.owner.get() : null;
+-        var id = i;
+-        if (owner) {
+-            var item = this.getItem(i);
+-            if (item) {
+-                id = owner.itemIdGenerator(item, i, Array.from(owner._childrenViews));
++            return null;
++        };
++        StaticPagerStateAdapterImpl.prototype.getItemId = function (i) {
++            var owner = this.owner ? this.owner.get() : null;
++            var id = i;
++            if (owner) {
++                var item = this.getItem(i);
++                if (item) {
++                    id = owner.itemIdGenerator(item, i, Array.from(owner._childrenViews));
++                }
+             }
+-        }
+-        return long(id);
+-    };
+-    StaticPagerStateAdapterImpl.prototype.getItemCount = function () {
+-        var owner = this.owner ? this.owner.get() : null;
+-        return owner && owner._childrenViews
+-            ? owner._childrenViews.size
+-            : 0;
+-    };
+-    StaticPagerStateAdapterImpl.prototype.getItemViewType = function (index) {
+-        return index;
+-    };
+-    return StaticPagerStateAdapterImpl;
+-}(androidx.recyclerview.widget.RecyclerView.Adapter));
++            return long(id);
++        };
++        StaticPagerStateAdapterImpl.prototype.getItemCount = function () {
++            var owner = this.owner ? this.owner.get() : null;
++            return owner && owner._childrenViews
++                ? owner._childrenViews.size
++                : 0;
++        };
++        StaticPagerStateAdapterImpl.prototype.getItemViewType = function (index) {
++            return index;
++        };
++        return StaticPagerStateAdapterImpl;
++    }(androidx.recyclerview.widget.RecyclerView.Adapter));
+     StaticPagerStateAdapter = StaticPagerStateAdapterImpl;
+ }
+ let PagerViewHolder;
+@@ -928,22 +937,22 @@ function initPagerViewHolder() {
+         return;
+     }
+     var PagerViewHolderImpl = /** @class */ (function (_super) {
+-    __extends(PagerViewHolderImpl, _super);
+-    function PagerViewHolderImpl(owner, pager) {
+-        var _this = _super.call(this, owner.get().nativeViewProtected) || this;
+-        _this.owner = owner;
+-        _this.pager = pager;
+-        return global.__native(_this);
+-    }
+-    Object.defineProperty(PagerViewHolderImpl.prototype, "view", {
+-        get: function () {
+-            return this.owner ? this.owner.get() : null;
+-        },
+-        enumerable: true,
+-        configurable: true
+-    });
+-    return PagerViewHolderImpl;
+-}(androidx.recyclerview.widget.RecyclerView.ViewHolder));
++        __extends(PagerViewHolderImpl, _super);
++        function PagerViewHolderImpl(owner, pager) {
++            var _this = _super.call(this, owner.get().nativeViewProtected) || this;
++            _this.owner = owner;
++            _this.pager = pager;
++            return global.__native(_this);
++        }
++        Object.defineProperty(PagerViewHolderImpl.prototype, "view", {
++            get: function () {
++                return this.owner ? this.owner.get() : null;
++            },
++            enumerable: true,
++            configurable: true
++        });
++        return PagerViewHolderImpl;
++    }(androidx.recyclerview.widget.RecyclerView.ViewHolder));
+     PagerViewHolder = PagerViewHolderImpl;
+ }
+ let ZoomOutPageTransformer;
+@@ -952,28 +961,28 @@ function initZoomOutPageTransformer() {
+         return;
+     }
+     var ZoomOutPageTransformerImpl = /** @class */ (function (_super) {
+-    __extends(ZoomOutPageTransformerImpl, _super);
+-    function ZoomOutPageTransformerImpl() {
+-        var _this = _super.call(this) || this;
+-        return global.__native(_this);
+-    }
+-    ZoomOutPageTransformerImpl.prototype.transformPage = function (view, position) {
+-        var MIN_SCALE = 0.85;
+-        if (position <= 1 || position >= -1) {
+-            var scale = Math.max(MIN_SCALE, 1 - Math.abs(position));
+-            view.setScaleX(scale);
+-            view.setScaleY(scale);
+-        }
+-        else {
+-            view.setScaleX(1);
+-            view.setScaleY(1);
+-        }
+-    };
+-    ZoomOutPageTransformerImpl = __decorate([
+-        Interfaces([androidx.viewpager2.widget.ViewPager2.PageTransformer])
+-    ], ZoomOutPageTransformerImpl);
+-    return ZoomOutPageTransformerImpl;
+-}(java.lang.Object));
++        __extends(ZoomOutPageTransformerImpl, _super);
++        function ZoomOutPageTransformerImpl() {
++            var _this = _super.call(this) || this;
++            return global.__native(_this);
++        }
++        ZoomOutPageTransformerImpl.prototype.transformPage = function (view, position) {
++            var MIN_SCALE = 0.85;
++            if (position <= 1 || position >= -1) {
++                var scale = Math.max(MIN_SCALE, 1 - Math.abs(position));
++                view.setScaleX(scale);
++                view.setScaleY(scale);
++            }
++            else {
++                view.setScaleX(1);
++                view.setScaleY(1);
++            }
++        };
++        ZoomOutPageTransformerImpl = __decorate([
++            Interfaces([androidx.viewpager2.widget.ViewPager2.PageTransformer])
++        ], ZoomOutPageTransformerImpl);
++        return ZoomOutPageTransformerImpl;
++    }(java.lang.Object));
+     ZoomOutPageTransformer = ZoomOutPageTransformerImpl;
+ }
+ let ZoomInPageTransformer;
+@@ -982,24 +991,24 @@ function initZoomInPageTransformer() {
+         return;
+     }
+     var ZoomInPageTransformerImpl = /** @class */ (function (_super) {
+-    __extends(ZoomInPageTransformerImpl, _super);
+-    function ZoomInPageTransformerImpl() {
+-        var _this = _super.call(this) || this;
+-        return global.__native(_this);
+-    }
+-    ZoomInPageTransformerImpl.prototype.transformPage = function (view, position) {
+-        var scale = position < 0 ? position + 1.0 : Math.abs(1.0 - position);
+-        view.setScaleX(scale);
+-        view.setScaleY(scale);
+-        view.setPivotX(view.getWidth() * 0.5);
+-        view.setPivotY(view.getHeight() * 0.5);
+-        view.setAlpha(view < -1.0 || position > 1.0 ? 0.0 : 1.0 - (scale - 1.0));
+-    };
+-    ZoomInPageTransformerImpl = __decorate([
+-        Interfaces([androidx.viewpager2.widget.ViewPager2.PageTransformer])
+-    ], ZoomInPageTransformerImpl);
+-    return ZoomInPageTransformerImpl;
+-}(java.lang.Object));
++        __extends(ZoomInPageTransformerImpl, _super);
++        function ZoomInPageTransformerImpl() {
++            var _this = _super.call(this) || this;
++            return global.__native(_this);
++        }
++        ZoomInPageTransformerImpl.prototype.transformPage = function (view, position) {
++            var scale = position < 0 ? position + 1.0 : Math.abs(1.0 - position);
++            view.setScaleX(scale);
++            view.setScaleY(scale);
++            view.setPivotX(view.getWidth() * 0.5);
++            view.setPivotY(view.getHeight() * 0.5);
++            view.setAlpha(view < -1.0 || position > 1.0 ? 0.0 : 1.0 - (scale - 1.0));
++        };
++        ZoomInPageTransformerImpl = __decorate([
++            Interfaces([androidx.viewpager2.widget.ViewPager2.PageTransformer])
++        ], ZoomInPageTransformerImpl);
++        return ZoomInPageTransformerImpl;
++    }(java.lang.Object));
+     ZoomInPageTransformer = ZoomInPageTransformerImpl;
+ }
+ //# sourceMappingURL=index.android.js.map
+\ No newline at end of file
